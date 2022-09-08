@@ -6,7 +6,7 @@ char buf[512];
 int row; //to print row num
 
 void
-cat(int fd)
+hcat(int fd)
 {
   int n;
   int cnt=0;
