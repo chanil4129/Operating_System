@@ -51,7 +51,6 @@ int check_idpw(char *user, char *pwd){
 int main(int argc,char *argv[]){
 	char user[512]; //Username 입력
 	char pwd[512]; //Password 입력
-	int pid,wpid;
 	get_user_list();
 	while(1){
 		printf(2,"Username: ");
@@ -63,18 +62,7 @@ int main(int argc,char *argv[]){
 		if(check_idpw(user,pwd)) break;
 		printf(2,"login failed. try again\n");
 	}
-	pid=fork();
-	if(pid<0){
-		printf(1,"ssu_login: fork failed\n");
-		exit();
-	}
-	if(pid==0){
-		exec("sh",argv);
-		printf(1,"ssu_login: exec sh failed\n");
-		exit();
-	}
-	while((wpid=wait()) >= 0 && wpid != pid)
-      printf(1, "zombie!\n");
+	exec("sh",argv);
 	
 	return 0;
 }
