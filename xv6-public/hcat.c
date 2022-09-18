@@ -31,7 +31,7 @@ main(int argc, char *argv[])
   int fd, i;
 
   if(argc <= 1){
-    cat(0);
+    hcat(0);
     exit();
   }
   row=atoi(argv[1]);
@@ -41,7 +41,7 @@ main(int argc, char *argv[])
       printf(1, "cat: cannot open %s\n", argv[i]);
       exit();
     }
-    cat(fd);
+    hcat(fd);
     close(fd);
   }
   exit();

@@ -89,3 +89,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_memsize(void){
+  return myproc()->sz;
+}
+
+int sys_trace(void){
+  if(argint(0, &myproc()->mask) < 0)
+    return -1;
+  
+  return 1;
+}
