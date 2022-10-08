@@ -20,10 +20,11 @@ int mkdir(const char*);
 int chdir(const char*);
 int dup(int);
 int getpid(void);
-char* sbrk(int);
+char* sbrk(int); //process의 메모리 크기를 n바이트 만큼 키워주고 char* 포인터를 리턴
 int sleep(int);
 int uptime(void);
-int weightset(int);
+int memsize(void);
+int trace(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -90,13 +90,13 @@ sys_uptime(void)
   return xticks;
 }
 
-//modify
-int sys_weightset(void){
-  int weight;
-  
-  if(argint(0,&weight)<0)
+int sys_memsize(void){
+  return myproc()->sz;
+}
+
+int sys_trace(void){
+  if(argint(0, &myproc()->mask) < 0)
     return -1;
   
   return 1;
-  // do_weightset(weight);
 }
