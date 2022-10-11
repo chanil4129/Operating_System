@@ -105,7 +105,7 @@ int sys_procinfo(void){
   struct proc *p=myproc();
   if(argint(0,&time)<0)
     return -1;
-  cprintf("Priority : %d. ",p->priority);
-  cprintf("PID: %d, WEIGHT: %d, TIMES : %d\n",p->pid,p->weight,time);
+  cprintf("Priority : %d ",p->priority);
+  cprintf("PID: %d, WEIGHT: %d, TIMES : %d ms\n",p->pid,p->weight,time);
   return p->pid;
 }
