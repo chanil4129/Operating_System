@@ -94,9 +94,18 @@ sys_uptime(void)
 int sys_weightset(void){
   int weight;
   
-  if(argint(0,&weight)<0)
+  if(argint(0,&weight)<0||weight==0)
     return -1;
-  
+  do_weightset(weight);
   return 1;
-  // do_weightset(weight);
+}
+
+int sys_procinfo(void){
+  int time;
+  struct proc *p=myproc();
+  if(argint(0,&time)<0)
+    return -1;
+  cprintf("Priority : %d. ",p->priority);
+  cprintf("PID: %d, WEIGHT: %d, TIMES : %d\n",p->pid,p->weight,time);
+  return p->pid;
 }

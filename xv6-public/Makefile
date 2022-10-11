@@ -91,7 +91,7 @@ CFLAGS += -fno-pie -nopie
 endif
 
 ifeq ($(debug),1)
-	CFLAGS += -DDEBUG
+CFLAGS += -DDEBUG
 endif
 
 xv6.img: bootblock kernel

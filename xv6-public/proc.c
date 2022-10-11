@@ -24,7 +24,7 @@ struct proc *ssu_schedule(){
   //modify*********
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->state == RUNNABLE) { //실행 가능한 프로세스만
-      if (ret == NULL || (ptable.min_priority>ret->priority)) 
+      if (ret == NULL || (ptable.min_priority<ret->priority)) 
         ret = p;
     }
   }
@@ -50,7 +50,7 @@ void update_min_priority(){
   //modify**************
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if (p->state == RUNNABLE){
-      if (min == NULL || (ptable.min_priority>min->priority))
+      if (min == NULL || (ptable.min_priority<min->priority))
         min = p;
     }
   }
@@ -412,11 +412,8 @@ scheduler(void)
 
     // modify**********
 
-    
-    update_min_priority();
     update_priority(p);
-
-
+    update_min_priority();
 
     //*****************
 
