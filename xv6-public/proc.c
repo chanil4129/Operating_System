@@ -24,7 +24,7 @@ struct proc *ssu_schedule(){
   struct proc *ret=NULL; //순회한 프로세스들 중 최소 priority를 가질 값
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) { //실행가능한 프로세스들을 찾기 위해 ptable 순회하면서 ret값 찾기
     if (p->state == RUNNABLE) { //실행 가능한 프로세스만
-      if (ret == NULL || (p->priority>ret->priority)) 
+      if (ret == NULL || (p->priority<ret->priority)) 
         ret = p;
     }
   }
@@ -47,7 +47,7 @@ void update_min_priority(){
   //modify**************
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if (p->state == RUNNABLE){
-      if (min == NULL || (p->priority>min->priority))
+      if (min == NULL || (p->priority<min->priority))
         min = p;
     }
   }
