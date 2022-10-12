@@ -7,41 +7,38 @@
 #include "proc.h"
 #include "spinlock.h"
 
-#define TIME_SLICE 10000000
-#define NULL ((void *)0)
+#define TIME_SLICE 10000000     //time_slice
+#define NULL ((void *)0)        //널 포인터(임시로 포인터 초기화 할 때 NULL로 초기화하기 위함)
 
-int weight=1;
+int weight=1; //weight는 1부터 시작(weight갑싱 0이면 error처리 sysproc.c 97번째 줄 참고)
 
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  long min_priority; //ptable의 최솟값 추가
+  long min_priority; //ptable에 min_priority 속성 추가
 } ptable;
 
-struct proc *ssu_schedule(){
-  struct proc *p;
-  struct proc *ret=NULL;
-  //modify*********
-  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+//ssu_schedule : 실행할 프로세스 찾기. 프로세스의 proc 구조체 정보는 ret 변수에 넣어 ret 리턴
+struct proc *ssu_schedule(){ 
+  struct proc *p; //순회할 프로세스들
+  struct proc *ret=NULL; //순회한 프로세스들 중 최소 priority를 가질 값
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) { //실행가능한 프로세스들을 찾기 위해 ptable 순회하면서 ret값 찾기
     if (p->state == RUNNABLE) { //실행 가능한 프로세스만
-      if (ret == NULL || (ptable.min_priority<ret->priority)) 
+      if (ret == NULL || (p->priority>ret->priority)) 
         ret = p;
     }
   }
-  //***************
+  //xv6 빌드 시 "debug=1" 매개변수 전달이 오면, 다음 내용 출력
   #ifdef DEBUG
-  //modify***********
-    if (ret)
+    if (ret) //실행될 프로세스 정보 출력
       cprintf("PID: %d, NAME: %s, WEIGHT: %d, PRIORITY: %d\n", ret->pid, ret->name, ret->weight, ret->priority);
-  //*****************
   #endif
-    return ret;
+    return ret; //실행할 프로세스 proc 구조체 리턴
 }
 
+//
 void update_priority(struct proc *proc){
-  //modify**************
   proc->priority = proc->priority + (TIME_SLICE/proc->weight);
-  //********************
 }
 
 void update_min_priority(){
@@ -50,7 +47,7 @@ void update_min_priority(){
   //modify**************
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if (p->state == RUNNABLE){
-      if (min == NULL || (ptable.min_priority<min->priority))
+      if (min == NULL || (p->priority>min->priority))
         min = p;
     }
   }

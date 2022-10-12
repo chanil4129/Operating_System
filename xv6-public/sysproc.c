@@ -90,9 +90,9 @@ sys_uptime(void)
   return xticks;
 }
 
-//modify
+//
 int sys_weightset(void){
-  int weight;
+  int weight; // 인자로 입력 받을 weight
   
   if(argint(0,&weight)<0||weight==0)
     return -1;
@@ -105,7 +105,6 @@ int sys_procinfo(void){
   struct proc *p=myproc();
   if(argint(0,&time)<0)
     return -1;
-  // cprintf("Priority : %d ",p->priority);
   cprintf("PID: %d, WEIGHT: %d, TIMES : %d ms\n",p->pid,p->weight,time);
   return p->pid;
 }
