@@ -15,7 +15,7 @@ int weight=1; //weight는 1부터 시작(weight갑싱 0이면 error처리 syspro
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  long min_priority; //ptable에 min_priority 속성 추가
+  long min_priority; //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여하기 위해 필요
 } ptable;
 
 //ssu_schedule : 실행할 프로세스 찾기. 프로세스의 proc 구조체 정보는 ret 변수에 넣어 ret 리턴
@@ -36,31 +36,31 @@ struct proc *ssu_schedule(){
     return ret; //실행할 프로세스 proc 구조체 리턴
 }
 
-//
+//인자로 들어온 proc 구조체의 priority 업데이트 => new_priority=old_priority+(TIME_SLICE/weight)
 void update_priority(struct proc *proc){
   proc->priority = proc->priority + (TIME_SLICE/proc->weight);
 }
 
+//실행가능한 프로세스들 중에서 가장 작은 우선순위 갖는 프로세스를 선택하여 그 priority를 ptable의 min_priority에 대입(갱신)
 void update_min_priority(){
-  struct proc *min=NULL;
-  struct proc *p;
-  //modify**************
-  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if (p->state == RUNNABLE){
+  struct proc *min=NULL; //순회한 프로세스들 중 최소 priority를 가질 값
+  struct proc *p; //순회할 프로세스들
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){ //ptable 순회하면서 실행 가능한 프로세스들 중에서 가장 작은 priority값 찾기
+    if (p->state == RUNNABLE){ //실행 가능한 프로세스만
       if (min == NULL || (p->priority<min->priority))
         min = p;
     }
   }
-
+  //min이 NULL이 아니면 ptable의 min_priority 갱신
   if(min!=NULL)
     ptable.min_priority=min->priority;
-  // ********************
 }
 
+// 프로세스 생성 또는 wake up 시 priority 값을 0부터 부여하게 되면
+// 해당 프로세스가 독점 실행될 수 있으므로 관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여
+// 인자로 proc을 넣으면 그 proc의 priority 값을 갱신
 void assign_min_priority(struct proc *proc){
-  //modify*********
    proc->priority = ptable.min_priority;
-  //***************
 }
 
 static struct proc *initproc;
@@ -137,14 +137,14 @@ allocproc(void)
   return 0;
 
 found:
-  //modify*********
+  //weight 값은 프로세스 생성 순서에 따라 1부터 차례대로 증가시키며 부여
   p->weight=weight;
   weight++;
-  //***************
+
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  assign_min_priority(p);
+  assign_min_priority(p); //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여
 
   release(&ptable.lock);
 
@@ -520,19 +520,20 @@ sleep(void *chan, struct spinlock *lk)
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
+// SLEEPING 상태인 프로세스들을 모두 RUNNABLE 상태로 바꿈.
+// 프로세스가 exit() 함수를 호출할 때 해당 프로세스가 종료되고,
+// 다음 실행될 프로세스를 찾아야 하기 때문에 상태를 새로 업데이트 해줘야함.
 static void
 wakeup1(void *chan)
 {
   struct proc *p;
 
-  //modify**********************
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-      assign_min_priority(p);
+      assign_min_priority(p); //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여
     }
   }
-  //****************************
 }
 
 // Wake up all processes sleeping on chan.
