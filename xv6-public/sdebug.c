@@ -20,9 +20,9 @@ void sdebug_func(void){
         {
             weightset(n+1);
             int counter=0;
-            int end_ticks;
             int print_counter=PRINT_CYCLE;
             int start_ticks=uptime();
+            int end_ticks;
             int first=1;
 
             while(counter<=TOTAL_COUNTER)
@@ -37,7 +37,6 @@ void sdebug_func(void){
                     {
                         end_ticks = uptime();
                         procinfo((end_ticks - start_ticks) * 10);
-
                         first = 0;
                     }
                     print_counter = PRINT_CYCLE;
