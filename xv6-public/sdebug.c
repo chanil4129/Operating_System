@@ -9,7 +9,6 @@
 void sdebug_func(void){
     int n,pid;
 
-
     printf(1,"start sdebug command\n");
 
     for(n=0;n<PNUM;n++)
@@ -19,11 +18,11 @@ void sdebug_func(void){
             break;
         if(pid==0)
         {
+            weightset(n+1);
             int counter=0;
             int end_ticks;
             int print_counter=PRINT_CYCLE;
             int start_ticks=uptime();
-            weightset(n+1);
             int first=1;
 
             while(counter<=TOTAL_COUNTER)
@@ -31,7 +30,8 @@ void sdebug_func(void){
                 if(counter==TOTAL_COUNTER)
                     break;
                 counter++;
-                if (print_counter-- == 0)
+                print_counter--;
+                if (print_counter == 0)
                 {
                     if (first)
                     {
