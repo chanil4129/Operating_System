@@ -90,21 +90,22 @@ sys_uptime(void)
   return xticks;
 }
 
-//
+// sdebug 명령어에 의해 생성되는 프로세스의 weight 값 부여
 int sys_weightset(void){
   int weight; // 인자로 입력 받을 weight
   
-  if(argint(0,&weight)<0||weight==0)
+  if(argint(0,&weight)<0||weight==0) //인자 에러처리(0값이 들어와도 에러처리)
     return -1;
-  do_weightset(weight);
+  do_weightset(weight); // 인자 weight 값을 현재 실행중인 프로세스->weight에 저장
   return 1;
 }
 
+// sdebug 명령어에 의해 생성되는 프로세스 정보 출력(PID,WEIGHT,TIMES)
 int sys_procinfo(void){
-  int time;
-  struct proc *p=myproc();
-  if(argint(0,&time)<0)
+  int time; //인자로 받을 시간
+  struct proc *p=myproc(); //현재 실행중인 프로세스 정보
+  if(argint(0,&time)<0) //인자 에러처리
     return -1;
-  cprintf("PID: %d, WEIGHT: %d, TIMES : %d ms\n",p->pid,p->weight,time);
-  return p->pid;
+  cprintf("PID: %d, WEIGHT: %d, TIMES : %d ms\n",p->pid,p->weight,time); // 정보 출력
+  return 1; 
 }

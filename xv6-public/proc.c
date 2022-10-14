@@ -378,21 +378,25 @@ wait(void)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
+// 가장 낮은 priority를 가진 프로세스를 탐색하고 실행
+// context swtiching 하기
 void
 scheduler(void)
 {
   struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
+  struct cpu *c = mycpu(); //현재 cpu에 있는 레지스터 정보 가져오기
+  c->proc = 0; //proc 초기화
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
+    // 프로세스간 상호배제를 위한 lock 설정
     acquire(&ptable.lock);
 
-    p=ssu_schedule();
+    p=ssu_schedule(); //가장 낮은 priority를 가진 프로세스를 탐색
+    //실행할 프로세스가 없다면 lock 해제하고, for문 continue
     if(p==NULL){
       release(&ptable.lock);
       continue;
@@ -400,24 +404,24 @@ scheduler(void)
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
     // before jumping back to us.
-    c->proc = p;
+    // context swtiching 하기
+    // 레지스터에 실행할 프로세스 정보 입력
+    c->proc = p; 
     switchuvm(p);
-    p->state = RUNNING;
+    p->state = RUNNING; //프로세스 상태 Runnable에서 Running으로 변경
 
-    swtch(&(c->scheduler), p->context);
+    // 스택에 현재 레지스터를 저장하고 구조체 컨텍스트를 생성하고 해당 주소를 &(c->scheduler)에 저장
+    // 스택을 새 레지스터로 전환하고 이전에 저장한 레지스터를 팝합니다.
+    swtch(&(c->scheduler), p->context); 
     switchkvm();
 
-    // modify**********
-
-    update_priority(p);
-    update_min_priority();
-
-    //*****************
+    update_priority(p); // 우선순위 갱신
+    update_min_priority(); // 실행가능한 프로세스들 중에서 가장 작은 우선순위 갖는 프로세스를 선택하여 그 priority를 ptable의 min_priority에 대입(갱신)
 
     // Process is done running for now.
     // It should have changed its p->state before coming back.
     c->proc = 0;
-    release(&ptable.lock);
+    release(&ptable.lock); //lock 해제
   }
 }
 
@@ -605,10 +609,9 @@ procdump(void)
   }
 }
 
+// 인자 weight 값을 현재 실행중인 프로세스->weight에 저장
 void do_weightset(int weight){
-  acquire(&ptable.lock);
-  //modify************
-  myproc()->weight=weight;
-  //******************
-  release(&ptable.lock);
+  acquire(&ptable.lock); //프로세스간 상호배제를 위한 lock 설정
+  myproc()->weight=weight; //현재 실행중인 프로세스->weight에 인자 weight값 저장
+  release(&ptable.lock); //lock 해제
 }
