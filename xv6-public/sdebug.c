@@ -17,7 +17,7 @@ void sdebug_func(void){
             break;
         if(pid==0){ //자식 프로세스
             weightset(n+1); // 프로세스의 weight값 설정
-            long counter=0; // 카운터 개수를 늘리면서 TOTAL_COUNTER값과 같아지면 프로세스 종료
+            long long counter=0; // 카운터 개수를 늘리면서 TOTAL_COUNTER값과 같아지면 프로세스 종료
             int print_counter=PRINT_CYCLE; //프로세스 정보를 출력하는 주기
             int start_ticks=uptime(); //프로세스 실행 시작 시간
             int end_ticks; //프로세스 출력할 때 걸린 시간
