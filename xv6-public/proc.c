@@ -309,9 +309,11 @@ exit(void)
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
+  // 부모프로세스는 아마 wait()함수를 호출해서 UNUSED(sleep) 상태이기 때문에 깨워준다.
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
+  // 버려진 자식을 init에 전달(좀비 프로세스 관리)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
@@ -328,6 +330,7 @@ exit(void)
 
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
+// 자식프로세스가 종료될때까지 부모프로세스 기다리기
 int
 wait(void)
 {
@@ -411,7 +414,7 @@ scheduler(void)
     p->state = RUNNING; //프로세스 상태 Runnable에서 Running으로 변경
 
     // 스택에 현재 레지스터를 저장하고 구조체 컨텍스트를 생성하고 해당 주소를 &(c->scheduler)에 저장
-    // 스택을 새 레지스터로 전환하고 이전에 저장한 레지스터를 팝합니다.
+    // 스택을 새 레지스터로 전환하고 이전에 저장한 레지스터를 팝
     swtch(&(c->scheduler), p->context); 
     switchkvm();
 
@@ -525,6 +528,7 @@ sleep(void *chan, struct spinlock *lk)
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
 // SLEEPING 상태인 프로세스들을 모두 RUNNABLE 상태로 바꿈.
+// 여러 경우중 자식프로세스의 exit()함수가 호출될 때 wakeup1() 함수가 호출되고 그러면서 부모프로세스의 상태를 RUNNABLE로 바꾸는 케이스가 있다.
 // 프로세스가 exit() 함수를 호출할 때 해당 프로세스가 종료되고,
 // 다음 실행될 프로세스를 찾아야 하기 때문에 상태를 새로 업데이트 해줘야함.
 static void
@@ -535,7 +539,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-      assign_min_priority(p); //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여
+      assign_min_priority(p); //프로세스의 priority 값 중 가장 작은 값을 부여
     }
   }
 }
