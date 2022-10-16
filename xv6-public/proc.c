@@ -10,7 +10,7 @@
 #define TIME_SLICE 10000000     //time_slice
 #define NULL ((void *)0)        //널 포인터(임시로 포인터 초기화 할 때 NULL로 초기화하기 위함)
 
-int weight=1; //weight는 1부터 시작(weight갑싱 0이면 error처리 sysproc.c 97번째 줄 참고)
+int weight=1; //weight는 1부터 시작(weight갑싱 0이면 error처리 sysproc.c 97번째 줄)
 
 struct {
   struct spinlock lock;
@@ -18,7 +18,7 @@ struct {
   long min_priority; //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여하기 위해 필요
 } ptable;
 
-//ssu_schedule : 실행할 프로세스 찾기. 프로세스의 proc 구조체 정보는 ret 변수에 넣어 ret 리턴
+//ssu_schedule : 실행할 프로세스 찾기(priority가 가장 작은 프로세스). 프로세스의 proc 구조체 정보는 ret 변수에 넣어 ret 리턴
 struct proc *ssu_schedule(){ 
   struct proc *p; //순회할 프로세스들
   struct proc *ret=NULL; //순회한 프로세스들 중 최소 priority를 가질 값
@@ -41,7 +41,8 @@ void update_priority(struct proc *proc){
   proc->priority = proc->priority + (TIME_SLICE/proc->weight);
 }
 
-//실행가능한 프로세스들 중에서 가장 작은 우선순위 갖는 프로세스를 선택하여 그 priority를 ptable의 min_priority에 대입(갱신)
+// 실행가능한 프로세스들 중에서 가장 작은 우선순위 갖는 프로세스를 선택하여 그 priority를 ptable의 min_priority에 대입(갱신)
+// 나중에 assign_min_priority 함수를 실행하기 위해 필요
 void update_min_priority(){
   struct proc *min=NULL; //순회한 프로세스들 중 최소 priority를 가질 값
   struct proc *p; //순회할 프로세스들
