@@ -90,6 +90,7 @@ sys_uptime(void)
   return xticks;
 }
 
+//20182601
 // sdebug 명령어에 의해 생성되는 프로세스의 weight 값 부여
 int sys_weightset(void){
   int weight; // 인자로 입력 받을 weight
@@ -100,6 +101,7 @@ int sys_weightset(void){
   return 1;
 }
 
+//20182601
 // sdebug 명령어에 의해 생성되는 프로세스 정보 출력(PID,WEIGHT,TIMES)
 int sys_procinfo(void){
   int time; //인자로 받을 시간

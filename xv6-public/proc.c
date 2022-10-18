@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
+//20182601
 #define TIME_SLICE 10000000     //time_slice
 #define NULL ((void *)0)        //널 포인터(임시로 포인터 초기화 할 때 NULL로 초기화하기 위함)
 
@@ -15,9 +16,10 @@ int weight=1; //weight는 1부터 시작(weight갑싱 0이면 error처리 syspro
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
-  long min_priority; //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여하기 위해 필요
+  long min_priority; //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여하기 위해 필요 //20182601
 } ptable;
 
+//20182601
 //ssu_schedule : 실행할 프로세스 찾기(priority가 가장 작은 프로세스). 프로세스의 proc 구조체 정보는 ret 변수에 넣어 ret 리턴
 struct proc *ssu_schedule(){ 
   struct proc *p; //순회할 프로세스들
@@ -138,6 +140,7 @@ allocproc(void)
   return 0;
 
 found:
+  //20182601
   //weight 값은 프로세스 생성 순서에 따라 1부터 차례대로 증가시키며 부여
   p->weight=weight;
   weight++;
@@ -145,6 +148,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  //20182601
   assign_min_priority(p); //관리하고 있는 프로세스의 priority 값 중 가장 작은 값을 부여
 
   release(&ptable.lock);
@@ -181,6 +185,7 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
+  //20182601
   ptable.min_priority=3;
 
   p = allocproc();
@@ -384,6 +389,7 @@ wait(void)
 //      via swtch back to the scheduler.
 // 가장 낮은 priority를 가진 프로세스를 탐색하고 실행
 // context swtiching 하기
+//20182601
 void
 scheduler(void)
 {
@@ -540,6 +546,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+      //20182601
       assign_min_priority(p); //프로세스의 priority 값 중 가장 작은 값을 부여
     }
   }
@@ -614,6 +621,7 @@ procdump(void)
   }
 }
 
+//20182601
 // 인자 weight 값을 현재 실행중인 프로세스->weight에 저장
 void do_weightset(int weight){
   acquire(&ptable.lock); //프로세스간 상호배제를 위한 lock 설정

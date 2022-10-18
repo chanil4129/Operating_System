@@ -103,8 +103,8 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
-extern int sys_weightset(void);
-extern int sys_procinfo(void);
+extern int sys_weightset(void); //20182601
+extern int sys_procinfo(void); //20182601
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -128,8 +128,8 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_weightset] sys_weightset,
-[SYS_procinfo]  sys_procinfo
+[SYS_weightset] sys_weightset, //20182601
+[SYS_procinfo]  sys_procinfo //20182601
 };
 
 void

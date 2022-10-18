@@ -23,8 +23,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int weightset(int);
-int procinfo(int);
+int weightset(int); //20182601
+int procinfo(int); //20182601
 
 // ulib.c
 int stat(const char*, struct stat*);
