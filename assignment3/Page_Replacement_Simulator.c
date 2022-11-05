@@ -19,6 +19,17 @@
 // #define max(a,b) (((a) > (b)) ? (a) : (b))
 // #endif
 
+typedef struct node{
+    int data;
+    struct node *next;
+} node;
+
+typedef struct queue{
+    node *front;
+    node *rear;
+    int count;
+} queue;
+
 int split(char *string, char *seperator, char *argv[]);
 void init_reference_string(int data_input,int total_algorithm);
 int count_algorithm(int selected_algorithm[]);
@@ -31,6 +42,12 @@ void lru(int algorithm_index);
 void lfu(int algorithm_index);
 void sc(int algorithm_index);
 void esc(int algorithm_index);
+void initQ(queue *q);
+int emptyQ(queue *q);
+int selectQ(queue *q,int data);
+void insertQ(queue *q,int data);
+int sizeQ(queue *q);
+void deleteQ(queue *q);
 
 int reference_string[ALGOMAX][REF_STR];
 char ESC_reference_modify[REF_STR]; //ESC R,W(D) 표시
@@ -56,11 +73,13 @@ int main(void){
         fgets(input,sizeof(input),stdin);
         input[strlen(input)-1]='\0';
         A_argc=split(input," ",A_argv);
-        for(int i=0;i<A_argc;i++)
-            if(A_argc>1&&!strcmp(A_argv[i],"(8)"))
+        //2개 이상인데 8을 선택했을 경우
+        for(int i=0;i<A_argc;i++){
+            if((A_argc>1&&!strcmp(A_argv[i],"8"))||(atoi(A_argv[i])<1||atoi(A_argv[i])>8))
                 A_exception=1;
+        }
         if(A_argc>3||A_argc==0||A_exception){
-            printf("input error\n");
+            printf("input error.\nUsage : 1 2 5\n      | 6\n      | 2 4\n      | 8\n");
             continue;
         }
         if(!strcmp(A_argv[0],"8")){
@@ -245,41 +264,115 @@ void lifo(int algorithm_index){
 }
 
 void lru(int algorithm_index){
-    // int page_frame[PAGE_FRME_MAX];
-    // int fault_count=0;
-    // int i,j;
-    // memset(page_frame,-1,sizeof(page_frame));
-    // for(i=0;i<REF_STR;i++){
-    //     int replace=1;
-    //     for(j=0;j<page_frame_size;j++){
-    //         if(page_frame[j]==reference_string[algorithm_index][i]){
-    //             replace=0;
-    //         }
-    //         else if(page_frame[j]==-1){
-    //             replace=0;
-    //             page_frame[j]=reference_string[algorithm_index][i];
-    //             fault_count++;
-    //             break;
-    //         }
-    //     }
-    //     if(replace){
-    //         fault_count++;
-    //         dequeue();
-    //         enqueue(reference_string[algorithm_index][i]);
-    //     }
-    // }
+    int fault_count=0;
     int i,j;
+    queue q;
+    initQ(&q);
     for(i=0;i<REF_STR;i++){
-        if(!selectQ(reference_string[algorithm_index][i])){
-            if (sizeQ() == page_frame_size)
-                deleteQ(); //삭제할게 없으면 아무일도 일어나지 않음
-            insertQ(reference_string[algorithm_index][i]);
+        if(!selectQ(&q,reference_string[algorithm_index][i])){ //못 찾으면
+            fault_count++;
+            if (sizeQ(&q) >= page_frame_size)
+                deleteQ(&q);
+            insertQ(&q,reference_string[algorithm_index][i]);
         }
+        // if(i>1) 
+        //     printf("%d : %d %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data,q.rear->data);
+        // else if(i==0)
+        //     printf("%d : %d\n",reference_string[algorithm_index][i],q.front->data);
+        // else if(i==1)
+        //     printf("%d : %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data);
     }
 }
 
-void lfu(int algorithm_index){
+void initQ(queue *q){
+    q->front=q->rear=NULL;
+    q->count=0;
+}
+
+int emptyQ(queue *q){
+    return q->count==0;
+}
+
+int selectQ(queue *q,int data){ //***hit면 rear로 가야됨***
+    //같은 페이지 스트링 찾기. hit면 rear로 보내고 1리턴. falut면 0리턴
+    node *tail;
+    node *ptr;
+    if(emptyQ(q)){
+        return 0;
+    }
+    tail=q->rear;
+    ptr=q->front;
+    //hit
+    if(ptr->data==data){
+        q->front=ptr->next;
+        q->count--;
+        insertQ(q,data);
+        return 1;
+    }
+    if(ptr->next==NULL||ptr->next->next==NULL)
+        return 0;
+    while(ptr->next->next!=NULL){
+        if(ptr->next->data==data){
+            node *cur=ptr->next;
+            ptr->next=ptr->next->next;
+            q->count--;
+            insertQ(q,data);
+            return 1;
+        }
+        ptr=ptr->next;
+    }
+    //fault
+    return 0;
+}
+
+void insertQ(queue *q,int data){
+    node *new_node=(node *)malloc(sizeof(node));
+    new_node->data=data;
+    new_node->next=NULL;
     
+    if(emptyQ(q))
+        q->front=new_node;
+    else
+        q->rear->next=new_node;
+    q->rear=new_node;
+    q->count++;
+}
+
+int sizeQ(queue *q){
+    return q->count;
+}
+
+void deleteQ(queue *q){
+    node *ptr;
+    if(emptyQ(q)){
+        printf("Error : Queue is empty\n");
+        return;
+    }
+    ptr=q->front;
+    q->front=ptr->next;
+    free(ptr);
+    q->count--;
+}
+
+void lfu(int algorithm_index){
+    int fault_count=0;
+    int i,j;
+    queue q;
+    initQ(&q);
+    for(i=0;i<REF_STR;i++){
+        if(!selectQ(&q,reference_string[algorithm_index][i])){ //못 찾으면
+            fault_count++;
+            if (sizeQ(&q) >= page_frame_size)
+                deleteQ(&q);
+            insertQ(&q,reference_string[algorithm_index][i]);
+        }
+        // if(i>1) 
+        //     printf("%d : %d %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data,q.rear->data);
+        // else if(i==0)
+        //     printf("%d : %d\n",reference_string[algorithm_index][i],q.front->data);
+        // else if(i==1)
+        //     printf("%d : %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data);
+    }
 }
 
 void sc(int algorithm_index){
