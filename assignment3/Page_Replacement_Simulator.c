@@ -15,10 +15,6 @@
 #define NOT_ESC 0
 #define ESC 1
 
-// #ifndef max
-// #define max(a,b) (((a) > (b)) ? (a) : (b))
-// #endif
-
 typedef struct node{
     int data;
     struct node *next;
@@ -44,10 +40,15 @@ void sc(int algorithm_index);
 void esc(int algorithm_index);
 void initQ(queue *q);
 int emptyQ(queue *q);
-int selectQ(queue *q,int data);
+int selectQ_LRU(queue *q,int data);
 void insertQ(queue *q,int data);
 int sizeQ(queue *q);
 void deleteQ(queue *q);
+int isHit(queue *q,int data);
+void deleteQ_LFU(queue *q, int node_index);
+int victimQ_LFU(queue *q,int frequent[]);
+// void insertQ_LFU(queue *q,int data,int frequent[]);
+void printQ(queue *q);
 
 int reference_string[ALGOMAX][REF_STR];
 char ESC_reference_modify[REF_STR]; //ESC R,W(D) 표시
@@ -269,7 +270,7 @@ void lru(int algorithm_index){
     queue q;
     initQ(&q);
     for(i=0;i<REF_STR;i++){
-        if(!selectQ(&q,reference_string[algorithm_index][i])){ //못 찾으면
+        if(!selectQ_LRU(&q,reference_string[algorithm_index][i])){ //못 찾으면
             fault_count++;
             if (sizeQ(&q) >= page_frame_size)
                 deleteQ(&q);
@@ -293,7 +294,7 @@ int emptyQ(queue *q){
     return q->count==0;
 }
 
-int selectQ(queue *q,int data){ //***hit면 rear로 가야됨***
+int selectQ_LRU(queue *q,int data){
     //같은 페이지 스트링 찾기. hit면 rear로 보내고 1리턴. falut면 0리턴
     node *tail;
     node *ptr;
@@ -355,24 +356,113 @@ void deleteQ(queue *q){
 }
 
 void lfu(int algorithm_index){
+    int frequent[PAGE_STR+1];
     int fault_count=0;
+    int node_index;
     int i,j;
     queue q;
     initQ(&q);
+    memset(frequent,0,sizeof(frequent));
     for(i=0;i<REF_STR;i++){
-        if(!selectQ(&q,reference_string[algorithm_index][i])){ //못 찾으면
+        if(!isHit(&q,reference_string[algorithm_index][i])){ //못 찾으면
             fault_count++;
-            if (sizeQ(&q) >= page_frame_size)
-                deleteQ(&q);
+            if (sizeQ(&q) >= page_frame_size){
+                node_index=victimQ_LFU(&q,frequent);
+                deleteQ_LFU(&q,node_index);
+            }
             insertQ(&q,reference_string[algorithm_index][i]);
         }
-        // if(i>1) 
-        //     printf("%d : %d %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data,q.rear->data);
-        // else if(i==0)
-        //     printf("%d : %d\n",reference_string[algorithm_index][i],q.front->data);
-        // else if(i==1)
-        //     printf("%d : %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data);
+        frequent[reference_string[algorithm_index][i]]++;
+        printf("%d : ",reference_string[algorithm_index][i]);
+        printQ(&q);
     }
+}
+
+void printQ(queue *q){
+    node *ptr=q->front;
+    while(ptr->next!=NULL){
+        printf("%d ",ptr->data);
+        ptr=ptr->next;
+    }
+    printf("%d\n",ptr->data);
+}
+
+int victimQ_LFU(queue *q,int frequent[]){
+    node *ptr=q->front;
+    int min_page=ptr->data;
+    int i=0;
+    int node_index=0;
+    ptr=ptr->next;
+    i++;
+    while(ptr->next!=NULL){
+        // printf("fre :%d %d\n", min_page, frequent[min_page]);
+        // printf("fre :%d %d\n", ptr->data, frequent[ptr->data]);
+        if(frequent[min_page]>frequent[ptr->data]){
+            min_page=ptr->data;
+            node_index=i;
+        }
+        ptr=ptr->next;
+        i++;
+    }
+    // printf("fre :%d %d\n", min_page, frequent[min_page]);
+    // printf("fre :%d %d\n", ptr->data, frequent[ptr->data]);
+    if(frequent[min_page]>frequent[ptr->data]){
+            min_page=ptr->data;
+            node_index=i;
+    }
+    return node_index;
+}
+
+int isHit(queue *q,int data){
+    //같은 페이지 스트링 찾기. hit면 1리턴. falut면 0리턴
+    node *ptr;
+    int node_index=0;
+    if(emptyQ(q)){
+        return 0;
+    }
+    ptr=q->front;
+    //hit
+    while(ptr->next!=NULL){
+        if(ptr->data==data){
+            deleteQ_LFU(q,node_index);
+            insertQ(q,data);
+            return 1;
+        }
+        ptr=ptr->next;
+        node_index++;
+    }
+    if(ptr->data==data){
+        deleteQ_LFU(q,node_index);
+        insertQ(q,data);
+        return 1;
+    }
+    //fault
+    return 0;
+}
+
+void deleteQ_LFU(queue *q, int node_index){
+    node *ptr;
+    if(emptyQ(q)){
+        printf("Error : Queue is empty\n");
+        return;
+    }
+    ptr=q->front;
+    if(node_index==0){
+        q->front=ptr->next;
+    }
+    else{
+        node *preptr=ptr;
+        ptr=ptr->next;
+        for(int i=0;i<node_index-1;i++){
+            preptr=preptr->next;
+            ptr=ptr->next;
+        }
+        preptr->next=preptr->next->next;
+        if(preptr->next==NULL)
+            q->rear=preptr;
+    }
+    free(ptr);
+    q->count--;
 }
 
 void sc(int algorithm_index){
@@ -424,6 +514,27 @@ void init_reference_string(int data_input,int total_algorithm){
         reference_string[0][17]=7;
         reference_string[0][18]=0;
         reference_string[0][19]=1;
+
+        // reference_string[0][0]=1;
+        // reference_string[0][1]=2;
+        // reference_string[0][2]=6;
+        // reference_string[0][3]=1;
+        // reference_string[0][4]=4;
+        // reference_string[0][5]=5;
+        // reference_string[0][6]=1;
+        // reference_string[0][7]=2;
+        // reference_string[0][8]=1;
+        // reference_string[0][9]=4;
+        // reference_string[0][10]=5;
+        // reference_string[0][11]=6;
+        // reference_string[0][12]=4;
+        // reference_string[0][13]=5;
+        // reference_string[0][14]=5;
+        // reference_string[0][15]=5;
+        // reference_string[0][16]=5;
+        // reference_string[0][17]=5;
+        // reference_string[0][18]=5;
+        // reference_string[0][19]=5;
         for(int i=1;i<total_algorithm;i++){
             memcpy(reference_string[i],reference_string[0],sizeof(reference_string[0]));
         }
