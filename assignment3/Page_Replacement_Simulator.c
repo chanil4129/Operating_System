@@ -9,9 +9,10 @@
 #define ALGOMAX 7
 #define PAGE_FRME_MAX 10
 #define ARGMAX 11
-#define BUFMAX 1024
+#define BUFMAX 4096
 #define PAGE_STR 30
 #define REF_STR 20
+#define FILE_ARGMAX 1000
 #define NOT_ESC 0
 #define ESC 1
 
@@ -31,6 +32,7 @@ void init_reference_string(int data_input,int total_algorithm);
 int count_algorithm(int selected_algorithm[]);
 void print_reference_string(int index,int isESC);
 void page_replacement(int selected_algorithm[]);
+void printAndSave_page_frame(int page_frame[], int algorithm_index, int i);
 void optimal(int algorithm_index);
 void fifo(int algorithm_index);
 void lifo(int algorithm_index);
@@ -49,6 +51,7 @@ void deleteQ_LFU(queue *q, int node_index);
 int victimQ_LFU(queue *q,int frequent[]);
 // void insertQ_LFU(queue *q,int data,int frequent[]);
 void printQ(queue *q);
+void printAndSave_algorithm_list(char *kind_algorithm);
 
 int reference_string[ALGOMAX][REF_STR];
 char ESC_reference_modify[REF_STR]; //ESC R,W(D) 표시
@@ -117,7 +120,7 @@ int main(void){
         input[strlen(input)-1]='\0';
         C_argc=split(input," ",C_argv);
         if(C_argc!=1||strcmp(C_argv[0],"1")&&strcmp(C_argv[0],"2")){
-            printf("input error\n");
+            printf("input error.\nUsage : 1\n      | 2\n");
             continue;
         }
         data_input=atoi(C_argv[0]);
@@ -134,7 +137,6 @@ int main(void){
 
 void page_replacement(int selected_algorithm[]){
     int algorithm_index=0;
-    printf("selected_algorithm : %d\n",selected_algorithm[1]);
     if(selected_algorithm[0]) optimal(algorithm_index++);
     if(selected_algorithm[1]) fifo(algorithm_index++);
     if(selected_algorithm[2]) lifo(algorithm_index++);
@@ -144,16 +146,61 @@ void page_replacement(int selected_algorithm[]){
     if(selected_algorithm[6]) esc(algorithm_index++);
 }
 
+void printAndSave_algorithm_list(char *kind_algorithm){
+    FILE *fp=NULL;
+    char *filename="result.txt";
+    
+    printf("\n%s\n",kind_algorithm);
+
+    if((fp=fopen(filename,"a+"))==NULL){
+        fprintf(stderr,"file open error\n");
+        exit(1);
+    }
+    fprintf(fp,"\n%s\n",kind_algorithm);
+    fclose(fp);
+}
+
+void printAndSave_page_frame(int page_frame[], int algorithm_index, int i){
+    FILE *fp=NULL;
+    char *filename="result.txt";
+
+    //stdout print
+    printf("%d : ", reference_string[algorithm_index][i]);
+    for(int i=0;i<page_frame_size;i++){
+        if(page_frame[i]==-1)
+            printf("- ");
+        else
+            printf("%d ", page_frame[i]);
+    }
+    printf("\n");
+    //save
+    if((fp=fopen(filename,"a+"))==NULL){
+        fprintf(stderr,"file open error\n");
+        exit(1);
+    }
+    fprintf(fp,"%d : ", reference_string[algorithm_index][i]);
+    for(int i=0;i<page_frame_size;i++){
+        if(page_frame[i]==-1)
+            fprintf(fp,"- ");
+        else
+            fprintf(fp,"%d ", page_frame[i]);
+    }
+    fprintf(fp,"\n");
+    fclose(fp);
+}
+
 void optimal(int algorithm_index){
     int page_frame[PAGE_FRME_MAX];
     int fault_count=0;
     int i,j;
+    printAndSave_algorithm_list("Optimal");
     memset(page_frame,-1,sizeof(page_frame));
     for(i=0;i<REF_STR;i++){
         int replace=1;
         for(j=0;j<page_frame_size;j++){
             if(page_frame[j]==reference_string[algorithm_index][i]){
                 replace=0;
+                break;
             }
             else if(page_frame[j]==-1){
                 replace=0;
@@ -183,15 +230,10 @@ void optimal(int algorithm_index){
             }
             page_frame[max_index]=reference_string[algorithm_index][i];
         }
-        // for(int i=0;i<3;i++){
-        //     printf("%d ", page_frame[i]);
-        // }
-        // printf("\n");
+        printAndSave_page_frame(page_frame,algorithm_index,i);
     }
-    // for(int i=0;i<3;i++){
-    //         printf("%d ", page_frame[i]);
-    //     }
-    //     printf("\n");
+    printAndSave_page_frame(page_frame,algorithm_index,i);
+    
 }
 
 void fifo(int algorithm_index){
@@ -199,12 +241,14 @@ void fifo(int algorithm_index){
     int page_frame_idx=0;
     int fault_count=0;
     int i,j;
+    printAndSave_algorithm_list("FIFO");
     memset(page_frame,-1,sizeof(page_frame));
     for(i=0;i<REF_STR;i++){
         int replace=1;
         for(j=0;j<page_frame_size;j++){
             if(page_frame[j]==reference_string[algorithm_index][i]){
                 replace=0;
+                break;
             }
             else if(page_frame[j]==-1){
                 replace=0;
@@ -218,28 +262,24 @@ void fifo(int algorithm_index){
             page_frame[page_frame_idx%page_frame_size]=reference_string[algorithm_index][i];
             page_frame_idx++;
         }
-        // for(int i=0;i<3;i++){
-        //     printf("%d ", page_frame[i]);
-        // }
-        // printf("\n");
+        printAndSave_page_frame(page_frame,algorithm_index,i);
     }
-    // for(int i=0;i<3;i++){
-    //         printf("%d ", page_frame[i]);
-    //     }
-    //     printf("\n");
+    printAndSave_page_frame(page_frame,algorithm_index,i);
 }
 
 void lifo(int algorithm_index){
     int page_frame[PAGE_FRME_MAX];
-    int page_frame_idx=0;
+    // int page_frame_idx=0;
     int fault_count=0;
     int i,j;
+    printAndSave_algorithm_list("LIFO");
     memset(page_frame,-1,sizeof(page_frame));
     for(i=0;i<REF_STR;i++){
         int replace=1;
         for(j=0;j<page_frame_size;j++){
             if(page_frame[j]==reference_string[algorithm_index][i]){
                 replace=0;
+                break;
             }
             else if(page_frame[j]==-1){
                 replace=0;
@@ -250,24 +290,20 @@ void lifo(int algorithm_index){
         }
         if(replace){
             fault_count++;
-            page_frame[page_frame_size-(page_frame_idx%page_frame_size)-1]=reference_string[algorithm_index][i];
-            page_frame_idx++;
+            page_frame[page_frame_size-1]=reference_string[algorithm_index][i];
+            // page_frame[page_frame_size-(page_frame_idx%page_frame_size)-1]=reference_string[algorithm_index][i];
+            // page_frame_idx++;
         }
-        // for(int i=0;i<3;i++){
-        //     printf("%d ", page_frame[i]);
-        // }
-        // printf("\n");
+        printAndSave_page_frame(page_frame,algorithm_index,i);
     }
-    // for(int i=0;i<3;i++){
-    //         printf("%d ", page_frame[i]);
-    //     }
-    //     printf("\n");
+    printAndSave_page_frame(page_frame,algorithm_index,i);
 }
 
 void lru(int algorithm_index){
     int fault_count=0;
     int i,j;
     queue q;
+    printAndSave_algorithm_list("LRU");
     initQ(&q);
     for(i=0;i<REF_STR;i++){
         if(!selectQ_LRU(&q,reference_string[algorithm_index][i])){ //못 찾으면
@@ -276,12 +312,8 @@ void lru(int algorithm_index){
                 deleteQ(&q);
             insertQ(&q,reference_string[algorithm_index][i]);
         }
-        // if(i>1) 
-        //     printf("%d : %d %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data,q.rear->data);
-        // else if(i==0)
-        //     printf("%d : %d\n",reference_string[algorithm_index][i],q.front->data);
-        // else if(i==1)
-        //     printf("%d : %d %d\n",reference_string[algorithm_index][i],q.front->data,q.front->next->data);
+        // printf("%d : ",reference_string[algorithm_index][i]);
+        // printQ(&q);
     }
 }
 
@@ -361,6 +393,7 @@ void lfu(int algorithm_index){
     int node_index;
     int i,j;
     queue q;
+    printAndSave_algorithm_list("LFU");
     initQ(&q);
     memset(frequent,0,sizeof(frequent));
     for(i=0;i<REF_STR;i++){
@@ -373,8 +406,8 @@ void lfu(int algorithm_index){
             insertQ(&q,reference_string[algorithm_index][i]);
         }
         frequent[reference_string[algorithm_index][i]]++;
-        printf("%d : ",reference_string[algorithm_index][i]);
-        printQ(&q);
+        // printf("%d : ",reference_string[algorithm_index][i]);
+        // printQ(&q);
     }
 }
 
@@ -466,7 +499,56 @@ void deleteQ_LFU(queue *q, int node_index){
 }
 
 void sc(int algorithm_index){
-    
+    int page_frame[PAGE_FRME_MAX];
+    int bit_frame[PAGE_FRME_MAX];
+    int page_frame_idx=0;
+    int fault_count=0;
+    int i,j;
+    printAndSave_algorithm_list("SC");
+    memset(page_frame,-1,sizeof(page_frame));
+    memset(bit_frame,0,sizeof(bit_frame));
+    for(i=0;i<REF_STR;i++){
+        int replace=1;
+        for(j=0;j<page_frame_size;j++){
+            if(page_frame[j]==reference_string[algorithm_index][i]){
+                bit_frame[j]=1;
+                replace=0;
+                break;
+            }
+            else if(page_frame[j]==-1){
+                replace=0;
+                page_frame[j]=reference_string[algorithm_index][i];
+                bit_frame[j]=1;
+                fault_count++;
+                break;
+            }
+        }
+        if(replace){
+            int temp=page_frame_idx;
+            fault_count++;
+            printf("bit : %d %d %d\n",bit_frame[0],bit_frame[1],bit_frame[2]);
+            for(int t=0;t<page_frame_size;t++){
+                if(temp==page_frame_size){
+                    temp=0;
+                }
+                if(bit_frame[temp]==0){
+                    break;
+                }
+                bit_frame[temp]=0;
+                temp++;
+            }
+            if(temp==page_frame_size){
+                    temp=0;
+            }
+            page_frame[temp]=reference_string[algorithm_index][i];
+            bit_frame[temp]=1;
+            page_frame_idx=temp;
+            page_frame_idx++;
+            page_frame_idx=page_frame_idx%page_frame_size;
+        }
+        printAndSave_page_frame(page_frame,algorithm_index,i);
+    }
+    printAndSave_page_frame(page_frame,algorithm_index,i);
 }
 
 void esc(int algorithm_index){
@@ -491,54 +573,41 @@ void init_reference_string(int data_input,int total_algorithm){
             memcpy(reference_string[i],reference_string[0],sizeof(reference_string[0]));
         }
         print_reference_string(0,ESC);
-        }
+    }
     else{
-        //생성된 파일 입력을 받는 모듈
-        reference_string[0][0]=7;
-        reference_string[0][1]=0;
-        reference_string[0][2]=1;
-        reference_string[0][3]=2;
-        reference_string[0][4]=0;
-        reference_string[0][5]=3;
-        reference_string[0][6]=0;
-        reference_string[0][7]=4;
-        reference_string[0][8]=2;
-        reference_string[0][9]=3;
-        reference_string[0][10]=0;
-        reference_string[0][11]=3;
-        reference_string[0][12]=2;
-        reference_string[0][13]=1;
-        reference_string[0][14]=2;
-        reference_string[0][15]=0;
-        reference_string[0][16]=1;
-        reference_string[0][17]=7;
-        reference_string[0][18]=0;
-        reference_string[0][19]=1;
+        FILE *stream_fp=NULL;
+        FILE *bit_fp=NULL;
+        char *stream_filename="samplestream20.txt";
+        char *bit_filename="samplebit20.txt";
+        char streambuf[BUFMAX];
+        char bitbuf[BUFMAX];
+        int stream_argc;
+        int bit_argc;
+        char *stream_argv[FILE_ARGMAX];
+        char *bit_argv[FILE_ARGMAX];
 
-        // reference_string[0][0]=1;
-        // reference_string[0][1]=2;
-        // reference_string[0][2]=6;
-        // reference_string[0][3]=1;
-        // reference_string[0][4]=4;
-        // reference_string[0][5]=5;
-        // reference_string[0][6]=1;
-        // reference_string[0][7]=2;
-        // reference_string[0][8]=1;
-        // reference_string[0][9]=4;
-        // reference_string[0][10]=5;
-        // reference_string[0][11]=6;
-        // reference_string[0][12]=4;
-        // reference_string[0][13]=5;
-        // reference_string[0][14]=5;
-        // reference_string[0][15]=5;
-        // reference_string[0][16]=5;
-        // reference_string[0][17]=5;
-        // reference_string[0][18]=5;
-        // reference_string[0][19]=5;
+        if((stream_fp=fopen(stream_filename,"r"))==NULL||(bit_fp=fopen(bit_filename,"r"))==NULL){
+            fprintf(stderr,"file open error\n");
+            exit(1);
+        }
+        
+        fread(streambuf,1,BUFMAX,stream_fp);
+        fread(bitbuf,1,BUFMAX,bit_fp);
+        stream_argc=split(streambuf," ",stream_argv);
+        bit_argc=split(bitbuf," ",bit_argv);
+        for(int i=0;i<stream_argc;i++){
+            reference_string[0][i]=atoi(stream_argv[i]);
+        }
+        for(int i=0;i<bit_argc;i++){
+            ESC_reference_modify[i]=atoi(bit_argv[i]);
+        }
+
         for(int i=1;i<total_algorithm;i++){
             memcpy(reference_string[i],reference_string[0],sizeof(reference_string[0]));
         }
         print_reference_string(0,ESC);
+        fclose(stream_fp);
+        fclose(bit_fp);
     }
 }
 
@@ -552,11 +621,11 @@ int count_algorithm(int selected_algorithm[]){
 
 void print_reference_string(int index,int isESC){
     for(int i=0;i<REF_STR;i++){
-        if(ESC) {
+        if(isESC) {
             if(ESC_reference_modify[i]=='r')
                 printf("%dR ",reference_string[index][i]);
             else
-                printf("%dW(D) ",reference_string[index][i]);
+                printf("%dW ",reference_string[index][i]);
         }
         else printf("%d ",reference_string[index][i]);
     }
