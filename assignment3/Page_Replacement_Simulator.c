@@ -11,7 +11,7 @@
 #define ARGMAX 11
 #define BUFMAX 4096
 #define PAGE_STR 30
-#define REF_STR 500
+#define REF_STR 1000
 #define FILE_ARGMAX 1000
 #define NOT_ESC 0
 #define ESC 1
@@ -56,10 +56,14 @@ void printandSave_pageFault(int page_fault);//page fault 개수 표준출력 및
 int toBit(int index);//referece string에서 Read면 2, Write면 3 리턴 
 void getOptimalPageFault();//optimal 알고리즘을 실행했을 때 page_fault 값 출력 및 파일에 저장
 
-int reference_string[ALGOMAX][REF_STR];//reference string
+int reference_string[ALGOMAX][REF_STR];//reference string.
+int reference_string_size;//개수
 char ESC_reference_modify[REF_STR]; //ESC R,W(D) 표시
 int page_frame_size;//사용자가 입력한 page frame 크기
-int rw_bit[PAGE_FRME_MAX];
+int rw_bit[PAGE_FRME_MAX];//esc에서 사용할 rw_bit
+char filename[BUFMAX];//저장할 파일 이름
+char stream_filename[BUFMAX];//사용자 입력 reference string 파일 이름
+char bit_filename[BUFMAX];//사용자 입력 R/D bit 파일 이름
 
 int main(void){
     int A_argc;
@@ -125,7 +129,8 @@ int main(void){
     }
     //데이터 입력 방식
     while(1){
-        printf("C. 데이터 입력 방식을 선택하시오.(1,2)\n");
+        printf("C. 데이터 입력 방식을 선택하시오.(1 또는 2)\n");
+        printf("(1) 랜덤하게 생성\n(2) 사용자 생성 파일 오픈\n");
         //사용자 입력
         fgets(input,sizeof(input),stdin);
         input[strlen(input)-1]='\0';
@@ -136,15 +141,34 @@ int main(void){
             continue;
         }
         data_input=atoi(C_argv[0]);
+        if(data_input==1){
+            while(1){
+                printf("C-1. Reference String 개수를 입력하시오.(최대 1000)\n");
+                scanf("%d",&reference_string_size);
+                if(reference_string_size<=1000||reference_string_size>=1){
+                    break;
+                }
+                printf("input error\n");
+            }
+        }
+        if(data_input==2){
+            printf("C-1. samplestream 파일 이름 입력하시오.\n");
+            scanf("%s",stream_filename);
+            printf("C-2. samplebit 파일 이름 입력하시오.\n");
+            scanf("%s",bit_filename);
+        }
         break;
     }
+
+    printf("D. 저장할 파일 이름을 입력하시오.\n");
+    scanf("%s",filename);
 
     total_algorithm=count_algorithm(selected_algorithm);//몇개의 알고리즘이 선택됐는지 total_algorithm에 저장
     init_reference_string(data_input,total_algorithm);//페이지 스트링 생성. data_input이 1이면 랜덤 생성 2이면 지정된 파일로부터 읽어 들이기
     getOptimalPageFault();//optimal 알고리즘을 실행했을 때 page_fault 값을 얻는 함수
     page_replacement(selected_algorithm);//selected_algorithm에서 선택된 알고리즘들 실행
 
-    printf("D. 종료\n");
+    printf("E. 종료\n");
     exit(0);
 }
 
@@ -163,9 +187,8 @@ void page_replacement(int selected_algorithm[]){
 //배열 결과 표준출력 및 파일에 저장. 단계-reference string-page frame 순으로 출력
 void printAndSave_algorithm_list(char *kind_algorithm, int isESC){
     FILE *fp=NULL;
-    char *filename="result.txt";
     //표준 출력
-    printf("\n%s\n",kind_algorithm);
+    printf("%s\n",kind_algorithm);
     if(isESC) printf("단계 : (reference string)    - (page frame)(RD Bit)\n");
     else printf("단계 : (reference string)    - (page frame)\n");
     //파일 오픈
@@ -174,7 +197,7 @@ void printAndSave_algorithm_list(char *kind_algorithm, int isESC){
         exit(1);
     }
     //파일에 저장
-    fprintf(fp,"\n%s\n",kind_algorithm);
+    fprintf(fp,"%s\n",kind_algorithm);
     if(isESC) fprintf(fp,"단계 : (reference string)    - (page frame)(RD Bit)\n");
     else fprintf(fp,"단계 : (reference string)    - (page frame)\n");
     fclose(fp);
@@ -182,23 +205,21 @@ void printAndSave_algorithm_list(char *kind_algorithm, int isESC){
 //page fault 개수 표준출력 및 파일에 저장
 void printandSave_pageFault(int page_fault){
     FILE *fp=NULL;
-    char *filename="result.txt";
     //표준 출력
-    printf("Page fault : %d\n",page_fault);
+    printf("Page fault : %d\n\n",page_fault);
     //파일 오픈
     if((fp=fopen(filename,"a+"))==NULL){
         fprintf(stderr,"file open error\n");
         exit(1);
     }
     //파일에 저장
-    fprintf(fp,"Page fault : %d\n",page_fault);
+    fprintf(fp,"Page fault : %d\n\n",page_fault);
     fclose(fp);
 }
 
 //page_frame 표준출력 및 파일에 저장
 void printAndSave_page_frame(int page_frame[], int algorithm_index, int i, int isESC){
     FILE *fp=NULL;
-    char *filename="result.txt";
 
     //표준 출력
     if(isESC) //ESC인 경우
@@ -252,7 +273,7 @@ void optimal(int algorithm_index){
     int i,j;
     printAndSave_algorithm_list("Optimal",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame)); //비어있는 page_frame은 -1로 표현
-    for(i=0;i<REF_STR;i++){ //모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){ //모든 reference string을 돌면서
         int replace=1; //교체를 해야하면 1 아니면 0
         for(j=0;j<page_frame_size;j++){ //page_frame을 돌면서
             if(page_frame[j]==reference_string[algorithm_index][i]){//Hit인 경우
@@ -273,7 +294,7 @@ void optimal(int algorithm_index){
             int k,t;
             fault_count++;//page_fault 카운팅
             for(k=0;k<page_frame_size;k++){//모든 page frame 돌면서
-                for(t=i+1;t<REF_STR;t++){ //다음 reference string을 돌면서
+                for(t=i+1;t<reference_string_size;t++){ //다음 reference string을 돌면서
                     if (page_frame[k] == reference_string[algorithm_index][t]) //page frame에 있는 값이랑 reference string이 처음한번 같을 때까지 반복
                         break;
                 }
@@ -295,12 +316,11 @@ void optimal(int algorithm_index){
 //optimal 알고리즘을 실행했을 때 page_fault 값을 얻는 함수
 void getOptimalPageFault(){
     FILE *fp = NULL;
-    char *filename="result.txt";
     int page_frame[PAGE_FRME_MAX];
     int fault_count = 0;
     int i, j;
     memset(page_frame,-1,sizeof(page_frame)); //비어있는 page_frame은 -1로 표현
-    for(i=0;i<REF_STR;i++){ //모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){ //모든 reference string을 돌면서
         int replace=1; //교체를 해야하면 1 아니면 0
         for(j=0;j<page_frame_size;j++){ //page_frame을 돌면서
             if(page_frame[j]==reference_string[0][i]){//Hit인 경우
@@ -321,7 +341,7 @@ void getOptimalPageFault(){
             int k,t;
             fault_count++;//page_fault 카운팅
             for(k=0;k<page_frame_size;k++){//모든 page frame 돌면서
-                for(t=i+1;t<REF_STR;t++){ //다음 reference string을 돌면서
+                for(t=i+1;t<reference_string_size;t++){ //다음 reference string을 돌면서
                     if (page_frame[k] == reference_string[0][t]) //page frame에 있는 값이랑 reference string이 처음한번 같을 때까지 반복
                         break;
                 }
@@ -336,12 +356,12 @@ void getOptimalPageFault(){
             page_frame[max_index]=reference_string[0][i];//victim 교체
         }
     }
-    printf("Optimal page fault : %d\n",fault_count);
+    printf("Optimal page fault : %d\n\n",fault_count);
     if((fp=fopen(filename,"a+"))==NULL){
         fprintf(stderr,"file open error\n");
         exit(1);
     }
-    fprintf(fp,"Optimal page fault : %d\n",fault_count);
+    fprintf(fp,"Optimal page fault : %d\n\n",fault_count);
     fclose(fp);
 }
 
@@ -353,7 +373,7 @@ void fifo(int algorithm_index){
     int i,j;
     printAndSave_algorithm_list("FIFO",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
         for(j=0;j<page_frame_size;j++){//page_frame을 돌면서
             if(page_frame[j]==reference_string[algorithm_index][i]){//Hit인 경우
@@ -384,7 +404,7 @@ void lifo(int algorithm_index){
     int i,j;
     printAndSave_algorithm_list("LIFO",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
         for(j=0;j<page_frame_size;j++){//page_frame을 돌면서
             if(page_frame[j]==reference_string[algorithm_index][i]){//Hit인 경우
@@ -414,7 +434,7 @@ void lru(int algorithm_index){
     queue q; //리스트
     printAndSave_algorithm_list("LRU",NOT_ESC);
     initQ(&q);//q 초기화
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         if(!selectQ_LRU(&q,reference_string[algorithm_index][i])){ //못 찾으면
             fault_count++;//page_fault 카운팅
             if (sizeQ(&q) >= page_frame_size) //page frame이 꽉 찼다면
@@ -512,7 +532,7 @@ void lfu(int algorithm_index){
     printAndSave_algorithm_list("LFU",NOT_ESC);
     initQ(&q);//q 초기화
     memset(frequent,0,sizeof(frequent));//page 참조 횟수 기록 초기화
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         if(!isHit(&q,reference_string[algorithm_index][i])){ //못 찾으면
             fault_count++;//page_fault 카운팅
             if (sizeQ(&q) >= page_frame_size){//page frame이 꽉 찼다면
@@ -529,7 +549,6 @@ void lfu(int algorithm_index){
 
 void printAndSaveQ(queue *q,int algorithm_index,int index){
     FILE *fp=NULL;
-    char *filename="result.txt";
     node *ptr=q->front;
     node *saveptr=q->front;
     //표준 출력
@@ -645,7 +664,7 @@ void sc(int algorithm_index){
     printAndSave_algorithm_list("SC",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     memset(bit_frame,0,sizeof(bit_frame));//기회 주는 비트 처음에는 0으로 초기화
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
         for(j=0;j<page_frame_size;j++){//page_frame을 돌면서
             if(page_frame[j]==reference_string[algorithm_index][i]){//Hit인 경우
@@ -696,7 +715,7 @@ void esc(int algorithm_index){
     printAndSave_algorithm_list("ESC",ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     memset(rw_bit,0,sizeof(rw_bit));//rw_bit 0으로 초기화
-    for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
+    for(i=0;i<reference_string_size;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
         int left_bit_off=1;//rw_bit의 왼쪽비트를 꺼야한다면 1 아니면 0
 
@@ -757,10 +776,10 @@ int toBit(int index){
 void init_reference_string(int data_input,int total_algorithm){
     if(data_input==1){
         srand((unsigned int)time(NULL)); //랜덤 시드
-        for(int i=0;i<REF_STR;i++){ //reference string 크기만큼 돌면서
+        for(int i=0;i<reference_string_size;i++){ //reference string 크기만큼 돌면서
             reference_string[0][i]=(int)(rand()%PAGE_STR+1); //랜덤 생성한값 넣기
         }
-        for(int i=0;i<REF_STR;i++){ //RW도 랜덤
+        for(int i=0;i<reference_string_size;i++){ //RW도 랜덤
             if(rand()%2){
                 ESC_reference_modify[i]='R'; //reference bit
             }
@@ -776,8 +795,6 @@ void init_reference_string(int data_input,int total_algorithm){
     else{
         FILE *stream_fp=NULL;
         FILE *bit_fp=NULL;
-        char *stream_filename="samplestream20.txt";
-        char *bit_filename="samplebit20.txt";
         char streambuf[BUFMAX];
         char bitbuf[BUFMAX];
         int stream_argc;
@@ -795,6 +812,7 @@ void init_reference_string(int data_input,int total_algorithm){
         //토큰 분리
         stream_argc=split(streambuf," ",stream_argv);
         bit_argc=split(bitbuf," ",bit_argv);
+        reference_string_size=stream_argc;
         //reference_string에 저장
         for(int i=0;i<stream_argc;i++){
             reference_string[0][i]=atoi(stream_argv[i]);
@@ -825,10 +843,9 @@ int count_algorithm(int selected_algorithm[]){
 //해당 알고리즘의 reference_string을 출력하는 함수. isESC가 ESC이면 RW도 출력
 void print_reference_string(int index,int isESC){
     FILE *fp=NULL;
-    char *filename="result.txt";
     
     printf("-----Reference string-----\n");
-    for(int i=0;i<REF_STR;i++){
+    for(int i=0;i<reference_string_size;i++){
         if(isESC) {
             if(ESC_reference_modify[i]=='R')
                 printf("%dR ",reference_string[index][i]);
@@ -845,7 +862,7 @@ void print_reference_string(int index,int isESC){
         exit(1);
     }
     fprintf(fp,"-----Reference string-----\n");
-    for(int i=0;i<REF_STR;i++){
+    for(int i=0;i<reference_string_size;i++){
         if(isESC) {
             if(ESC_reference_modify[i]=='R')
                 fprintf(fp,"%dR ",reference_string[index][i]);

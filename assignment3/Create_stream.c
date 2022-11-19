@@ -8,7 +8,7 @@
 
 #define BUFMAX 4096
 #define PAGE_STR 30
-#define REF_STR 500
+#define REF_STR 1000
 #define NOT_ESC 0
 #define ESC 1
 
