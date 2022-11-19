@@ -11,7 +11,7 @@
 #define ARGMAX 11
 #define BUFMAX 4096
 #define PAGE_STR 30
-#define REF_STR 20
+#define REF_STR 500
 #define FILE_ARGMAX 1000
 #define NOT_ESC 0
 #define ESC 1
@@ -51,7 +51,7 @@ int isHit(queue *q,int data);//hit인지 확인
 void deleteQ_LFU(queue *q, int node_index);//LFU q victim 삭제
 int victimQ_LFU(queue *q,int frequent[]);//LFU victim 찾기
 void printAndSaveQ(queue *q,int algorithm_index,int index);//리스트 결과 표준출력 및 파일에 저장. 단계-reference string-page frame 순으로 출력
-void printAndSave_algorithm_list(char *kind_algorithm);//배열 결과 표준출력 및 파일에 저장. 단계-reference string-page frame 순으로 출력
+void printAndSave_algorithm_list(char *kind_algorithm, int isESC);//배열 결과 표준출력 및 파일에 저장. 단계-reference string-page frame 순으로 출력
 void printandSave_pageFault(int page_fault);//page fault 개수 표준출력 및 파일에 저장
 int toBit(int index);//referece string에서 Read면 2, Write면 3 리턴 
 void getOptimalPageFault();//optimal 알고리즘을 실행했을 때 page_fault 값 출력 및 파일에 저장
@@ -59,6 +59,7 @@ void getOptimalPageFault();//optimal 알고리즘을 실행했을 때 page_fault
 int reference_string[ALGOMAX][REF_STR];//reference string
 char ESC_reference_modify[REF_STR]; //ESC R,W(D) 표시
 int page_frame_size;//사용자가 입력한 page frame 크기
+int rw_bit[PAGE_FRME_MAX];
 
 int main(void){
     int A_argc;
@@ -160,12 +161,13 @@ void page_replacement(int selected_algorithm[]){
 }
 
 //배열 결과 표준출력 및 파일에 저장. 단계-reference string-page frame 순으로 출력
-void printAndSave_algorithm_list(char *kind_algorithm){
+void printAndSave_algorithm_list(char *kind_algorithm, int isESC){
     FILE *fp=NULL;
     char *filename="result.txt";
     //표준 출력
     printf("\n%s\n",kind_algorithm);
-    printf("단계 : (reference string)    - (page frame)\n");
+    if(isESC) printf("단계 : (reference string)    - (page frame)(RD Bit)\n");
+    else printf("단계 : (reference string)    - (page frame)\n");
     //파일 오픈
     if((fp=fopen(filename,"a+"))==NULL){
         fprintf(stderr,"file open error\n");
@@ -173,7 +175,8 @@ void printAndSave_algorithm_list(char *kind_algorithm){
     }
     //파일에 저장
     fprintf(fp,"\n%s\n",kind_algorithm);
-    fprintf(fp,"단계 : (reference string)    - (page frame)\n");
+    if(isESC) fprintf(fp,"단계 : (reference string)    - (page frame)(RD Bit)\n");
+    else fprintf(fp,"단계 : (reference string)    - (page frame)\n");
     fclose(fp);
 }
 //page fault 개수 표준출력 및 파일에 저장
@@ -205,8 +208,15 @@ void printAndSave_page_frame(int page_frame[], int algorithm_index, int i, int i
     for(int i=0;i<page_frame_size;i++){
         if(page_frame[i]==-1)
             ;
-        else
-            printf("%-4d ", page_frame[i]);
+        else{
+            if(isESC){ 
+            if(rw_bit[i]==0) printf("%4d (00) ", page_frame[i]);
+            if(rw_bit[i]==1) printf("%4d (01) ", page_frame[i]);
+            if(rw_bit[i]==2) printf("%4d (10) ", page_frame[i]);
+            if(rw_bit[i]==3) printf("%4d (11) ", page_frame[i]);
+            }
+            else printf("%-4d ",page_frame[i]);
+        }
     }
     printf("\n");
     //파일 오픈
@@ -221,8 +231,15 @@ void printAndSave_page_frame(int page_frame[], int algorithm_index, int i, int i
     for(int i=0;i<page_frame_size;i++){
         if(page_frame[i]==-1)
             ;
-        else
-            fprintf(fp,"%-4d ", page_frame[i]);
+        else{
+            if(isESC){ 
+            if(rw_bit[i]==0) fprintf(fp,"%4d (00) ", page_frame[i]);
+            if(rw_bit[i]==1) fprintf(fp,"%4d (01) ", page_frame[i]);
+            if(rw_bit[i]==2) fprintf(fp,"%4d (10) ", page_frame[i]);
+            if(rw_bit[i]==3) fprintf(fp,"%4d (11) ", page_frame[i]);
+            }
+            else fprintf(fp,"%-4d ",page_frame[i]);
+        }
     }
     fprintf(fp,"\n");
     fclose(fp);
@@ -233,7 +250,7 @@ void optimal(int algorithm_index){
     int page_frame[PAGE_FRME_MAX];
     int fault_count=0;
     int i,j;
-    printAndSave_algorithm_list("Optimal");
+    printAndSave_algorithm_list("Optimal",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame)); //비어있는 page_frame은 -1로 표현
     for(i=0;i<REF_STR;i++){ //모든 reference string을 돌면서
         int replace=1; //교체를 해야하면 1 아니면 0
@@ -334,7 +351,7 @@ void fifo(int algorithm_index){
     int page_frame_idx=0;
     int fault_count=0;
     int i,j;
-    printAndSave_algorithm_list("FIFO");
+    printAndSave_algorithm_list("FIFO",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
@@ -365,7 +382,7 @@ void lifo(int algorithm_index){
     int page_frame[PAGE_FRME_MAX];
     int fault_count=0;
     int i,j;
-    printAndSave_algorithm_list("LIFO");
+    printAndSave_algorithm_list("LIFO",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
         int replace=1;//교체를 해야하면 1 아니면 0
@@ -395,7 +412,7 @@ void lru(int algorithm_index){
     int fault_count=0;
     int i,j;
     queue q; //리스트
-    printAndSave_algorithm_list("LRU");
+    printAndSave_algorithm_list("LRU",NOT_ESC);
     initQ(&q);//q 초기화
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
         if(!selectQ_LRU(&q,reference_string[algorithm_index][i])){ //못 찾으면
@@ -492,7 +509,7 @@ void lfu(int algorithm_index){
     int node_index;
     int i,j;
     queue q;
-    printAndSave_algorithm_list("LFU");
+    printAndSave_algorithm_list("LFU",NOT_ESC);
     initQ(&q);//q 초기화
     memset(frequent,0,sizeof(frequent));//page 참조 횟수 기록 초기화
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
@@ -625,7 +642,7 @@ void sc(int algorithm_index){
     int page_frame_idx=0;
     int fault_count=0;
     int i,j;
-    printAndSave_algorithm_list("SC");
+    printAndSave_algorithm_list("SC",NOT_ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     memset(bit_frame,0,sizeof(bit_frame));//기회 주는 비트 처음에는 0으로 초기화
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
@@ -674,11 +691,9 @@ void sc(int algorithm_index){
 //esc 알고리즘
 void esc(int algorithm_index){
     int page_frame[PAGE_FRME_MAX];
-    int rw_bit[PAGE_FRME_MAX];
-    int page_frame_idx=0;
     int fault_count=0;
     int i,j;
-    printAndSave_algorithm_list("ESC");
+    printAndSave_algorithm_list("ESC",ESC);
     memset(page_frame,-1,sizeof(page_frame));//비어있는 page_frame은 -1로 표현
     memset(rw_bit,0,sizeof(rw_bit));//rw_bit 0으로 초기화
     for(i=0;i<REF_STR;i++){//모든 reference string을 돌면서
