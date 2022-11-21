@@ -19,10 +19,10 @@ void print_reference_string(int index,int isESC){
     for(int i=0;i<REF_STR;i++){
         if(isESC) {
             if(ESC_reference_modify[i]=='r')
-                printf("R ");
+                printf("0 ");
                 // printf("%dR ",);
             else
-                printf("W ");
+                printf("1 ");
                 // printf("%dW ",reference_string[i]);
         }
         else printf("%d ",reference_string[i]);
