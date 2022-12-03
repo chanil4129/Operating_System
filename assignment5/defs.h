@@ -33,6 +33,7 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+void            do_printinfo(struct file *f,char *fname); //20182601
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
