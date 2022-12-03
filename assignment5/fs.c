@@ -22,6 +22,7 @@
 #include "file.h"
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
+#define BBIT 255 //20182601
 static void itrunc(struct inode*);
 // there should be one superblock per disk device, but we run with
 // only one device
@@ -403,37 +404,63 @@ bmap(struct inode *ip, uint bn)
 static uint
 CS_bmap(struct inode *ip, uint bn)
 {
-  uint addr, i, x, p, q, back_bit=(1<<8)-1, conti=0;
-
-  addr=balloc(ip->dev);
+  uint addr=0, addr_bn=0, i, x, p, q, continuous=0, error=1;
+  int bn_cnt=bn;
+  // cprintf("bn : %d\n",bn);
   for(i=0;i<NDIRECT;i++){
-    if((x=ip->addrs[i])!=0 && ((x&back_bit)<back_bit)){
-      p=(x>>8)-1;
-      q=(x>>8)+(x&back_bit);
-      if(p==addr){
-        ip->addrs[i]=ip->addrs[i]-(1<<8)+1;
-      }
-      if(q==addr){
-        ip->addrs[i]+=1;
-      }
-      conti=1;
-      break;
+    if((x=ip->addrs[i])!=0){
+      addr_bn+=(x&BBIT);
     }
   }
-  if(!conti){
+  // cprintf("bn_cnt : %d\n",bn_cnt);
+  //새로 할당할 필요 없는 경우
+  if(addr_bn>bn){
     for(i=0;i<NDIRECT;i++){
-      if((x=ip->addrs[i])==0){
-        ip->addrs[i]=(addr<<8)+1;
-        break;
+      if((x=ip->addrs[i])!=0){
+        // cprintf("sadfadsf\n");
+        bn_cnt-=(x&BBIT);
+        if(bn_cnt<=0){
+          return addr=(x>>8)+bn;
+        }
+        bn=bn_cnt;
+      }
+    }
+  }
+  //새로 할당해야 하는 경우
+  else{
+    addr=balloc(ip->dev);
+    for(i=0;i<NDIRECT;i++){
+      if((x=ip->addrs[i])!=0 && ((x&BBIT)<BBIT)){
+        p=(x>>8)-1;
+        q=(x>>8)+(x&BBIT);
+        if(p==addr){
+          ip->addrs[i]=ip->addrs[i]-(BBIT+1)+1;
+          continuous=1;
+          error=0;
+          break;
+        }
+        if(q==addr){
+          ip->addrs[i]+=1;
+          continuous=1;
+          error=0;
+          break;
+        }
+      }
+    }
+    if(!continuous){
+      for(i=0;i<NDIRECT;i++){
+        if((x=ip->addrs[i])==0){
+          ip->addrs[i]=(addr<<8)+1;
+          error=0;
+          break;
+        }
       }
     }
   }
 
-  // cprintf("addr : %d\n",addr);
-  // cprintf("ip->addrs[i] : %d\n",ip->addrs[i]);
-
-  if(i>=NDIRECT)
-    panic("bmap: out of range");
+  if(error){
+    return 0;
+  }
   return addr;
 }
 
@@ -447,24 +474,23 @@ itrunc(struct inode *ip)
 {
   int i, j;
   struct buf *bp;
-  uint *a, back_bit=(1<<8)-1, addr;
-  cprintf("itrucn\n");
+  uint *a;
 
   //20182601
   if(ip->type==T_CS){
-    cprintf("T_CS close\n");
+    // cprintf("T_CS close\n");
     for(i = 0; i < NDIRECT; i++){
-      if((addr=ip->addrs[i])){
-        cprintf("%d\n",addr&back_bit);
-        for(int t=0;t<(addr&back_bit);t++){
-          bfree(ip->dev,ip->addrs[i]+t);
+      if(ip->addrs[i]){
+        int x=ip->addrs[i]&BBIT;
+        for(int t=0;t<x;t++){
+          bfree(ip->dev,(ip->addrs[i]>>8)+t);
         }
         ip->addrs[i] = 0;
       }
     }
   }
   else{
-    cprintf("T_FILE close\n");
+    // cprintf("T_FILE close\n");
     for(i = 0; i < NDIRECT; i++){
       if(ip->addrs[i]){
         bfree(ip->dev, ip->addrs[i]);
@@ -542,8 +568,9 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
   uint tot, m;
+  uint error;//20182601
   struct buf *bp;
-
+  // cprintf("check writei 1\n");
   if(ip->type == T_DEV){
     if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].write)
       return -1;
@@ -552,13 +579,23 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
   if(off > ip->size || off + n < off)
     return -1;
-  if(off + n > MAXFILE*BSIZE)
-    return -1;
-
+  //20182601
+  if(ip->type==T_CS){
+    ;
+  }
+  else{
+    if(off + n > MAXFILE*BSIZE)
+      return -1;
+  }
+  // cprintf("check writei 2\n");
   for(tot=0; tot<n; tot+=m, off+=m, src+=m){
     //20182601
+    error=1;
     if(ip->type == T_CS){
-      bp = bread(ip->dev, CS_bmap(ip, off/BSIZE));
+      bp = bread(ip->dev, (error=CS_bmap(ip, off/BSIZE)));
+      if(!error){
+        return -2;
+      }
     }
     else{
       bp = bread(ip->dev, bmap(ip, off/BSIZE));
@@ -568,11 +605,15 @@ writei(struct inode *ip, char *src, uint off, uint n)
     log_write(bp);
     brelse(bp);
   }
+  // cprintf("check writei 3\n");
 
   if(n > 0 && off > ip->size){
     ip->size = off;
     iupdate(ip);
   }
+  // if(!error){
+  //   return -2;
+  // }
   return n;
 }
 

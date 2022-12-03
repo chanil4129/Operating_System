@@ -118,7 +118,6 @@ int
 filewrite(struct file *f, char *addr, int n)
 {
   int r;
-
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE)
@@ -143,6 +142,11 @@ filewrite(struct file *f, char *addr, int n)
         f->off += r;
       iunlock(f->ip);
       end_op();
+
+      //20182601
+      if(r==-2){
+        return -2;
+      }
 
       if(r < 0)
         break;

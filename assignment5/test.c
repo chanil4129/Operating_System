@@ -27,14 +27,41 @@ int main()
 	}
 	for (i = 0; i < BUFMAX; i++)
 		buf[i] = 'a';
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 2; i++) {
 		if ((size = write(fd, buf, BUFMAX)) != BUFMAX) {
-			printf(2, "ERROR: write failed in cs file\n");
+			if(size==-2){
+				printf(2,"ERROR: oversize\n");
+			}
+			else{
+				printf(2, "ERROR: write failed in cs file\n");
+			}
 			exit();
 		}
 
-		// if (i == 50)
-		// 	write_to_norm("test_norm");	
+		if (i == 50)
+			write_to_norm("test_norm");
+		// if (i == 52)
+		// 	write_to_norm("test_norm1");	
+		// if (i == 54)
+		// 	write_to_norm("test_norm2");	
+		// if (i == 56)
+		// 	write_to_norm("test_norm3");	
+		// if (i == 58)
+		// 	write_to_norm("test_norm4");
+		// if (i == 60)
+		// 	write_to_norm("test_norm5");	
+		// if (i == 62)
+		// 	write_to_norm("test_norm6");	
+		// if (i == 64)
+		// 	write_to_norm("test_norm7");	
+		// if (i == 66)
+		// 	write_to_norm("test_norm8");	
+		// if (i == 68)
+		// 	write_to_norm("test_norm9");	
+		// if (i == 70)
+		// 	write_to_norm("test_norm10");	
+		// if (i == 72)
+		// 	write_to_norm("test_norm11");		
 		
 	}
 	printinfo(fd, fname);
