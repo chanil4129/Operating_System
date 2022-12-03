@@ -118,6 +118,7 @@ int
 filewrite(struct file *f, char *addr, int n)
 {
   int r;
+
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE)
@@ -143,11 +144,6 @@ filewrite(struct file *f, char *addr, int n)
       iunlock(f->ip);
       end_op();
 
-      //20182601
-      if(r==-2){
-        return -2;
-      }
-
       if(r < 0)
         break;
       if(r != n1)
@@ -159,37 +155,3 @@ filewrite(struct file *f, char *addr, int n)
   panic("filewrite");
 }
 
-//20182601
-void do_printinfo(struct file *f, char *fname){
-  uint addrs,back_bit=(1<<8)-1;
-  cprintf("FILE NAME: %s\n",fname);
-  cprintf("INODE NUM: %d\n",f->ip->inum);
-  if(f->ip->type==1)
-    cprintf("FILE TYPE: DIR\n");
-  else if(f->ip->type==2)
-    cprintf("FILE TYPE: FILE\n");
-  else if(f->ip->type==3)
-    cprintf("FILE TYPE: DEV\n");
-  else if(f->ip->type==4)
-    cprintf("FILE TYPE: CS\n");
-  else
-    cprintf("FILE TYPE: NON_INFO\n");
-  cprintf("FILE SIZE: %d Bytes\n",f->ip->size);
-  cprintf("DIRECT BLOCK INFO: \n");
-
-  if(f->ip->type==2){//FILE
-    for(int i=0;i<NDIRECT;i++){
-      if((addrs=f->ip->addrs[i])!=0){
-        cprintf("[%d] %d\n",i,addrs);
-      }
-    }
-  }
-  else if(f->ip->type==4){//CS
-    for(int i=0;i<NDIRECT;i++){
-      if((addrs=f->ip->addrs[i])!=0){
-        cprintf("[%d] %d (num: %d, length: %d)\n",i,addrs,addrs>>8,addrs&back_bit);
-      }
-    }
-  }
-  cprintf("\n");
-}

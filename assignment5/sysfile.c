@@ -253,9 +253,6 @@ create(char *path, short type, short major, short minor)
     ilock(ip);
     if(type == T_FILE && ip->type == T_FILE)
       return ip;
-    //20182601
-    if(type == T_CS && ip->type == T_CS)
-      return ip;
     iunlockput(ip);
     return 0;
   }
@@ -298,22 +295,13 @@ sys_open(void)
 
   begin_op();
 
-  //20182601
-  if((omode & O_CREATE) && (omode & O_CS)){
-    ip = create(path, T_CS, 0, 0);
-    if(ip == 0){
-      end_op();
-      return -1;
-    }
-  } 
-  else if(omode & O_CREATE){
+  if(omode & O_CREATE){
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
       end_op();
       return -1;
     }
-  }
-  else {
+  } else {
     if((ip = namei(path)) == 0){
       end_op();
       return -1;
@@ -453,21 +441,4 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
-}
-
-//20182601
-int sys_printinfo(void){
-  int fd;
-  char *fname;
-  struct file *f;
-  if(argint(0, &fd) < 0 || argstr(1,&fname)<0){
-    cprintf("argument error\n");
-    return -1;
-  }
-  if(argfd(0, &fd, &f) < 0){
-    cprintf("fd error\n");
-    return -1;
-  }
-  do_printinfo(f,fname);
-  return 1;
 }

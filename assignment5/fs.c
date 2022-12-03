@@ -22,7 +22,6 @@
 #include "file.h"
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
-#define BBIT 255 //20182601
 static void itrunc(struct inode*);
 // there should be one superblock per disk device, but we run with
 // only one device
@@ -400,70 +399,6 @@ bmap(struct inode *ip, uint bn)
   panic("bmap: out of range");
 }
 
-//20182601
-static uint
-CS_bmap(struct inode *ip, uint bn)
-{
-  uint addr=0, addr_bn=0, i, x, p, q, continuous=0, error=1;
-  int bn_cnt=bn;
-  // cprintf("bn : %d\n",bn);
-  for(i=0;i<NDIRECT;i++){
-    if((x=ip->addrs[i])!=0){
-      addr_bn+=(x&BBIT);
-    }
-  }
-  // cprintf("bn_cnt : %d\n",bn_cnt);
-  //새로 할당할 필요 없는 경우
-  if(addr_bn>bn){
-    for(i=0;i<NDIRECT;i++){
-      if((x=ip->addrs[i])!=0){
-        // cprintf("sadfadsf\n");
-        bn_cnt-=(x&BBIT);
-        if(bn_cnt<=0){
-          return addr=(x>>8)+bn;
-        }
-        bn=bn_cnt;
-      }
-    }
-  }
-  //새로 할당해야 하는 경우
-  else{
-    addr=balloc(ip->dev);
-    for(i=0;i<NDIRECT;i++){
-      if((x=ip->addrs[i])!=0 && ((x&BBIT)<BBIT)){
-        p=(x>>8)-1;
-        q=(x>>8)+(x&BBIT);
-        if(p==addr){
-          ip->addrs[i]=ip->addrs[i]-(BBIT+1)+1;
-          continuous=1;
-          error=0;
-          break;
-        }
-        if(q==addr){
-          ip->addrs[i]+=1;
-          continuous=1;
-          error=0;
-          break;
-        }
-      }
-    }
-    if(!continuous){
-      for(i=0;i<NDIRECT;i++){
-        if((x=ip->addrs[i])==0){
-          ip->addrs[i]=(addr<<8)+1;
-          error=0;
-          break;
-        }
-      }
-    }
-  }
-
-  if(error){
-    return 0;
-  }
-  return addr;
-}
-
 // Truncate inode (discard contents).
 // Only called when the inode has no links
 // to it (no directory entries referring to it)
@@ -476,38 +411,23 @@ itrunc(struct inode *ip)
   struct buf *bp;
   uint *a;
 
-  //20182601
-  if(ip->type==T_CS){
-    // cprintf("T_CS close\n");
-    for(i = 0; i < NDIRECT; i++){
-      if(ip->addrs[i]){
-        int x=ip->addrs[i]&BBIT;
-        for(int t=0;t<x;t++){
-          bfree(ip->dev,(ip->addrs[i]>>8)+t);
-        }
-        ip->addrs[i] = 0;
-      }
+  for(i = 0; i < NDIRECT; i++){
+    if(ip->addrs[i]){
+      bfree(ip->dev, ip->addrs[i]);
+      ip->addrs[i] = 0;
     }
   }
-  else{
-    // cprintf("T_FILE close\n");
-    for(i = 0; i < NDIRECT; i++){
-      if(ip->addrs[i]){
-        bfree(ip->dev, ip->addrs[i]);
-        ip->addrs[i] = 0;
-      }
+
+  if(ip->addrs[NDIRECT]){
+    bp = bread(ip->dev, ip->addrs[NDIRECT]);
+    a = (uint*)bp->data;
+    for(j = 0; j < NINDIRECT; j++){
+      if(a[j])
+        bfree(ip->dev, a[j]);
     }
-    if(ip->addrs[NDIRECT]){
-      bp = bread(ip->dev, ip->addrs[NDIRECT]);
-      a = (uint*)bp->data;
-      for(j = 0; j < NINDIRECT; j++){
-        if(a[j])
-          bfree(ip->dev, a[j]);
-      }
-      brelse(bp);
-      bfree(ip->dev, ip->addrs[NDIRECT]);
-      ip->addrs[NDIRECT] = 0;
-    }
+    brelse(bp);
+    bfree(ip->dev, ip->addrs[NDIRECT]);
+    ip->addrs[NDIRECT] = 0;
   }
 
   ip->size = 0;
@@ -547,13 +467,7 @@ readi(struct inode *ip, char *dst, uint off, uint n)
     n = ip->size - off;
 
   for(tot=0; tot<n; tot+=m, off+=m, dst+=m){
-    //20182601
-    if(ip->type == T_CS){
-      bp = bread(ip->dev, CS_bmap(ip, off/BSIZE));
-    }
-    else{
-      bp = bread(ip->dev, bmap(ip, off/BSIZE));
-    }
+    bp = bread(ip->dev, bmap(ip, off/BSIZE));
     m = min(n - tot, BSIZE - off%BSIZE);
     memmove(dst, bp->data + off%BSIZE, m);
     brelse(bp);
@@ -568,9 +482,8 @@ int
 writei(struct inode *ip, char *src, uint off, uint n)
 {
   uint tot, m;
-  uint error;//20182601
   struct buf *bp;
-  // cprintf("check writei 1\n");
+
   if(ip->type == T_DEV){
     if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].write)
       return -1;
@@ -579,41 +492,21 @@ writei(struct inode *ip, char *src, uint off, uint n)
 
   if(off > ip->size || off + n < off)
     return -1;
-  //20182601
-  if(ip->type==T_CS){
-    ;
-  }
-  else{
-    if(off + n > MAXFILE*BSIZE)
-      return -1;
-  }
-  // cprintf("check writei 2\n");
+  if(off + n > MAXFILE*BSIZE)
+    return -1;
+
   for(tot=0; tot<n; tot+=m, off+=m, src+=m){
-    //20182601
-    error=1;
-    if(ip->type == T_CS){
-      bp = bread(ip->dev, (error=CS_bmap(ip, off/BSIZE)));
-      if(!error){
-        return -2;
-      }
-    }
-    else{
-      bp = bread(ip->dev, bmap(ip, off/BSIZE));
-    }
+    bp = bread(ip->dev, bmap(ip, off/BSIZE));
     m = min(n - tot, BSIZE - off%BSIZE);
     memmove(bp->data + off%BSIZE, src, m);
     log_write(bp);
     brelse(bp);
   }
-  // cprintf("check writei 3\n");
 
   if(n > 0 && off > ip->size){
     ip->size = off;
     iupdate(ip);
   }
-  // if(!error){
-  //   return -2;
-  // }
   return n;
 }
 
