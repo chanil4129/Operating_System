@@ -38,8 +38,8 @@ int main()
 			exit();
 		}
 
-		if (i == 50)
-			write_to_norm("test_norm");
+		// if (i == 50)
+		// 	write_to_norm("test_norm");
 		// if (i == 52)
 		// 	write_to_norm("test_norm1");	
 		// if (i == 54)

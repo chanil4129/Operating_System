@@ -75,7 +75,9 @@ balloc(uint dev)
     }
     brelse(bp);
   }
-  panic("balloc: out of blocks");
+  return 0;
+
+  // panic("balloc: out of blocks");
 }
 
 // Free a disk block.
@@ -429,6 +431,9 @@ CS_bmap(struct inode *ip, uint bn)
   //새로 할당해야 하는 경우
   else{
     addr=balloc(ip->dev);
+    if(addr==0){
+      return 0;
+    }
     for(i=0;i<NDIRECT;i++){
       if((x=ip->addrs[i])!=0 && ((x&BBIT)<BBIT)){
         p=(x>>8)-1;

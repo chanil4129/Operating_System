@@ -145,6 +145,7 @@ filewrite(struct file *f, char *addr, int n)
 
       //20182601
       if(r==-2){
+        cprintf("ERROR: size over\n");
         return -2;
       }
 
